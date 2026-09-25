@@ -2,7 +2,7 @@
 
 Native MetaMod plugin for an AWP-focused server. The initial profile is a 1v1 ladder/arena mode with a strict AWP round catalogue. It keeps the existing arena queue, spawn detection, rank movement, challenge flow and player statistics, but does not expose the generic rifle/SMG/shotgun rounds.
 
-The mode is controlled by `deploy/addons/configs/cs2-awp-modes.cfg`:
+The mode is controlled by `deploy/cfg/cs2-awp-modes.cfg`:
 
 - `Mode = awp_arena` enables AWP-only arena rounds.
 - `Mode = awp_rotation` enables AWP plus the explicitly enabled Scout, Deagle and Knife rounds.

@@ -111,7 +111,7 @@ bool CS2AWPModes::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, b
 
     // Load config
     char configPath[512];
-    g_SMAPI->PathFormat(configPath, sizeof(configPath), "%s/addons/configs/cs2-awp-modes.cfg",
+    g_SMAPI->PathFormat(configPath, sizeof(configPath), "%s/cfg/cs2-awp-modes.cfg",
                         g_SMAPI->GetBaseDir());
 
     if (!LoadConfig(configPath, g_Config))
