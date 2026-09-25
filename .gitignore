@@ -1,0 +1,6 @@
+build/
+build_2000872/
+objdir/
+package/
+*.so
+*.o

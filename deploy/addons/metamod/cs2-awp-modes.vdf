@@ -1,0 +1,5 @@
+"Metamod Plugin"
+{
+    "alias" "awp_modes"
+    "file" "addons/cs2-awp-modes/cs2-awp-modes"
+}

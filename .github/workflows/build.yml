@@ -1,0 +1,86 @@
+name: build
+on:
+  push:
+    branches: [pre-release, release]
+  workflow_dispatch:
+  repository_dispatch:
+    types: [sdk-update]     # sent by ghostss2016/hl2sdk sdk-sync ONLY when upstream actually changed
+    # (no per-plugin daily cron — the single sdk-sync job is the drift-catcher; saves Actions minutes)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:11          # glibc 2.31 = CS2 Steam Runtime target (ubuntu 2.39 would emit too-new symbols)
+    outputs:
+      so_path: ${{ steps.b.outputs.so_path }}
+    steps:
+      - name: deps (clang-17 + ambuild)
+        run: |
+          set -e
+          apt-get update -qq
+          apt-get install -y --no-install-recommends git python3 python3-pip binutils \
+            wget gnupg ca-certificates protobuf-compiler make default-libmysqlclient-dev
+          install -m0755 -d /etc/apt/keyrings
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /etc/apt/keyrings/llvm.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/llvm.gpg] http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-17 main" > /etc/apt/sources.list.d/llvm.list
+          apt-get update -qq
+          apt-get install -y clang-17 lld-17
+          ln -sf "$(command -v clang-17)"   /usr/local/bin/clang
+          ln -sf "$(command -v clang++-17)" /usr/local/bin/clang++
+          pip3 install --quiet git+https://github.com/alliedmodders/ambuild
+          clang --version | head -1
+      - name: checkout plugin
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
+      - name: fetch SDK (ghostss2016 FORK — our edits live here; sync-workflow merges upstream)
+        run: |
+          git config --global --add safe.directory '*'
+          git clone --depth 1 -b cs2 https://github.com/ghostss2016/hl2sdk.git _sdk/hl2sdk-cs2
+          git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/ghostss2016/metamod-source.git _sdk/metamod-source
+      - name: build + cleanliness gates
+        id: b
+        env:
+          HL2SDK: ${{ github.workspace }}/_sdk         # parent dir; SdkHelpers finds _sdk/hl2sdk-cs2 inside
+          MMS: ${{ github.workspace }}/_sdk/metamod-source
+        run: bash ci/build.sh
+      - name: upload .so artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-so
+          path: ${{ steps.b.outputs.so_path }}
+          if-no-files-found: error
+
+  promote:                        # pre-release passed -> fast-forward into release branch
+    needs: build
+    if: github.ref == 'refs/heads/pre-release'
+    runs-on: ubuntu-latest
+    permissions: { contents: write }   # fallback if ORG_TOKEN absent; the PAT push is what triggers the release job
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, token: '${{ secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}' }
+      - name: promote pre-release -> release
+        run: |
+          git config user.name  "ci-bot"
+          git config user.email "ci@ghostss2016.local"
+          git push origin HEAD:release --force
+
+  release:                        # push to release -> publish the .so as a Release asset for prod deploy
+    needs: build
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: '${{ github.event.repository.name }}-so', path: dist }
+      - name: publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ github.run_number }}
+          name: ${{ github.event.repository.name }} release ${{ github.run_number }}
+          files: dist/*
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
