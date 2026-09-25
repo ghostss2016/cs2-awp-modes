@@ -4,6 +4,9 @@ Native MetaMod plugin for an AWP-focused server. The initial profile is a 1v1 la
 
 The mode is controlled by `deploy/cfg/cs2-awp-modes.cfg`:
 
+The release package keeps this file under `cfg/` so the panel can install the
+plugin atomically with its VDF and binary.
+
 - `Mode = awp_arena` enables AWP-only arena rounds.
 - `Mode = awp_rotation` enables AWP plus the explicitly enabled Scout, Deagle and Knife rounds.
 - `AllowScout`, `AllowDeagle` and `AllowKnife` are allow-list switches. Existing database preferences cannot re-enable a disabled weapon type.
