@@ -38,6 +38,17 @@ public:
     const char* GetLogTag() { return "AWP_MODES"; }
 
 private:
+#if METAMOD_PLAPI_VERSION >= 18
+    using FrameHook=SvarogHooks::Virtual<IServerGameDLL,void,bool,bool,bool>;
+    using PutHook=SvarogHooks::Virtual<IServerGameClients,void,CPlayerSlot,const char*,int,uint64>;
+    using DisconnectHook=SvarogHooks::Virtual<IServerGameClients,void,CPlayerSlot,ENetworkDisconnectionReason,const char*,uint64,const char*>;
+    std::unique_ptr<FrameHook> frameHook_;
+    std::unique_ptr<PutHook> putHook_;
+    std::unique_ptr<DisconnectHook> disconnectHook_;
+    KHook::Return<void> Api18Frame(IServerGameDLL*,bool a,bool b,bool c){Hook_GameFrame(a,b,c);return {KHook::Action::Ignore};}
+    KHook::Return<void> Api18Put(IServerGameClients*,CPlayerSlot a,const char* b,int c,uint64 d){Hook_ClientPutInServer(a,b,c,d);return {KHook::Action::Ignore};}
+    KHook::Return<void> Api18Disconnect(IServerGameClients*,CPlayerSlot a,ENetworkDisconnectionReason b,const char* c,uint64 d,const char* e){Hook_ClientDisconnect(a,b,c,d,e);return {KHook::Action::Ignore};}
+#endif
     void Hook_GameFrame(bool simulating, bool bFirstTick, bool bLastTick);
     void Hook_ClientPutInServer(CPlayerSlot slot, char const* pszName, int type, uint64 xuid);
     void Hook_ClientDisconnect(CPlayerSlot slot, ENetworkDisconnectionReason reason,
@@ -77,11 +88,13 @@ CGameEntitySystem* GameEntitySystem()
 }
 
 // Source hooks
+#if METAMOD_PLAPI_VERSION < 18
 SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
 SH_DECL_HOOK4_void(IServerGameClients, ClientPutInServer, SH_NOATTRIB, 0,
     CPlayerSlot, char const*, int, uint64);
 SH_DECL_HOOK5_void(IServerGameClients, ClientDisconnect, SH_NOATTRIB, 0,
     CPlayerSlot, ENetworkDisconnectionReason, const char*, uint64, const char*);
+#endif
 
 // Hook handlers
 void CS2AWPModes::Hook_GameFrame(bool simulating, bool bFirstTick, bool bLastTick)
@@ -108,6 +121,16 @@ bool CS2AWPModes::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, b
     GET_V_IFACE_CURRENT(GetEngineFactory, g_pSchemaSystem, ISchemaSystem, SCHEMASYSTEM_INTERFACE_VERSION);
     GET_V_IFACE_CURRENT(GetServerFactory, g_pSource2Server, ISource2Server, SOURCE2SERVER_INTERFACE_VERSION);
     GET_V_IFACE_ANY(GetServerFactory, g_pSource2GameClients, ISource2GameClients, SOURCE2GAMECLIENTS_INTERFACE_VERSION);
+
+#if METAMOD_PLAPI_VERSION >= 18
+    frameHook_=std::make_unique<FrameHook>(&IServerGameDLL::GameFrame,this,nullptr,&CS2AWPModes::Api18Frame);
+    putHook_=std::make_unique<PutHook>(&IServerGameClients::ClientPutInServer,this,nullptr,&CS2AWPModes::Api18Put);
+    disconnectHook_=std::make_unique<DisconnectHook>(&IServerGameClients::ClientDisconnect,this,nullptr,&CS2AWPModes::Api18Disconnect);
+    if(!frameHook_->AddInstance(g_pSource2Server)||!putHook_->AddInstance(g_pSource2GameClients)||!disconnectHook_->AddInstance(g_pSource2GameClients)){
+        disconnectHook_.reset();putHook_.reset();frameHook_.reset();
+        g_SMAPI->Format(error,maxlen,"CS2AWPModes API18 hook registration rejected");return false;
+    }
+#endif
 
     // Load config
     char configPath[512];
@@ -169,12 +192,14 @@ bool CS2AWPModes::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, b
     g_pArenas = new Arenas();
 
     // Register hooks
+#if METAMOD_PLAPI_VERSION < 18
     SH_ADD_HOOK(IServerGameDLL, GameFrame, g_pSource2Server,
         SH_MEMBER(this, &CS2AWPModes::Hook_GameFrame), true);
     SH_ADD_HOOK(IServerGameClients, ClientPutInServer, g_pSource2GameClients,
         SH_MEMBER(this, &CS2AWPModes::Hook_ClientPutInServer), true);
     SH_ADD_HOOK(IServerGameClients, ClientDisconnect, g_pSource2GameClients,
         SH_MEMBER(this, &CS2AWPModes::Hook_ClientDisconnect), true);
+#endif
 
     META_CONPRINTF("[CS2AWPModes] Plugin loaded (version %s)\n", PLUGIN_VERSION);
 
@@ -277,12 +302,16 @@ void CS2AWPModes::AllPluginsLoaded()
 bool CS2AWPModes::Unload(char* error, size_t maxlen)
 {
     // Unregister hooks
+#if METAMOD_PLAPI_VERSION >= 18
+    disconnectHook_.reset();putHook_.reset();frameHook_.reset();
+#else
     SH_REMOVE_HOOK(IServerGameDLL, GameFrame, g_pSource2Server,
         SH_MEMBER(this, &CS2AWPModes::Hook_GameFrame), true);
     SH_REMOVE_HOOK(IServerGameClients, ClientPutInServer, g_pSource2GameClients,
         SH_MEMBER(this, &CS2AWPModes::Hook_ClientPutInServer), true);
     SH_REMOVE_HOOK(IServerGameClients, ClientDisconnect, g_pSource2GameClients,
         SH_MEMBER(this, &CS2AWPModes::Hook_ClientDisconnect), true);
+#endif
 
     // Shutdown events
     ShutdownEvents();

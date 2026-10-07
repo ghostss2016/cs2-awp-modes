@@ -6,7 +6,7 @@
 #include <mathlib/vector.h>
 #include <const.h>
 #include <iserver.h>
-#include <sh_vector.h>
+#include "metamod_virtual_hook.h"
 #include <vector>
 #include <queue>
 #include <map>
@@ -31,7 +31,7 @@ class CGameRules;
 // cs2-menus-new API
 #include <menus.h>
 
-#define PLUGIN_VERSION "1.0.1"
+#define PLUGIN_VERSION "1.0.2-api18"
 
 // Global pointers
 extern IVEngineServer2* g_pEngine;

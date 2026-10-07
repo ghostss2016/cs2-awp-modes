@@ -1,6 +1,13 @@
 # vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
 import os
 
+# API18 migration policy is a required native build prerequisite.
+builder.AddCommand(inputs=[os.path.join(builder.sourcePath, 'tests/api18_hook_contract_test.py'),
+                           os.path.join(builder.sourcePath, 'src/main.cpp'),
+                           os.path.join(builder.sourcePath, 'include/main.h')],
+    argv=['python3', '-I', os.path.join(builder.sourcePath, 'tests/api18_hook_contract_test.py'), 'api18-hooks.ok'],
+    outputs=['api18-hooks.ok'])
+
 for sdk_target in MMSPlugin.sdk_targets:
   sdk = sdk_target.sdk
   cxx = sdk_target.cxx
@@ -37,6 +44,7 @@ for sdk_target in MMSPlugin.sdk_targets:
 
   binary.compiler.includes += [
     os.path.join(MMSPlugin.mms_root, 'core'),
+    os.path.join(MMSPlugin.mms_root, 'third_party', 'khook', 'include'),
     os.path.join(MMSPlugin.mms_root, 'core', 'sourcehook'),
     os.path.join(builder.sourcePath, '..', 'cs2-menus-new', 'include'),
     schema_dir,
