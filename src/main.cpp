@@ -1,3 +1,6 @@
+#include <engine2/ivengineserver2.h>
+#include <engine2/isource2server.h>
+#include <engine2/gameshareddefs.h>
 #include "main.h"
 #include "config.h"
 #include "weapon_model.h"
@@ -13,7 +16,8 @@
 
 #include <ISmmPlugin.h>
 #include <igameevents.h>
-#include <iserver.h>
+#include <engine2/networkgameserverbase.h>
+#include <engine2/inetworkserverservice.h>
 #include <entity2/entitysystem.h>
 #include "schemasystem.h"
 #include <CCSPlayerController.h>

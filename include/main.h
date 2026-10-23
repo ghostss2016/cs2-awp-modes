@@ -1,11 +1,15 @@
 #ifndef _CS2_AWP_MODES_MAIN_H_
 #define _CS2_AWP_MODES_MAIN_H_
 
+#include <engine2/ivengineserver2.h>
+#include <engine2/isource2server.h>
+#include <engine2/gameshareddefs.h>
 #include <ISmmPlugin.h>
 #include <igameevents.h>
 #include <mathlib/vector.h>
 #include <const.h>
-#include <iserver.h>
+#include <engine2/networkgameserverbase.h>
+#include <engine2/inetworkserverservice.h>
 #include "metamod_virtual_hook.h"
 #include <vector>
 #include <queue>
