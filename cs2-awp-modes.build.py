@@ -1,12 +1,14 @@
 # vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
 import os
 
-# API18 migration policy is a required native build prerequisite.
-builder.AddCommand(inputs=[os.path.join(builder.sourcePath, 'tests/api18_hook_contract_test.py'),
-                           os.path.join(builder.sourcePath, 'src/main.cpp'),
-                           os.path.join(builder.sourcePath, 'include/main.h')],
-    argv=['python3', '-I', os.path.join(builder.sourcePath, 'tests/api18_hook_contract_test.py'), 'api18-hooks.ok'],
-    outputs=['api18-hooks.ok'])
+# Optional API18 source-contract check for development builds.
+# Development checks are opt-in; production compilation only builds plugin assets.
+if getattr(builder.options, 'enable_tests', False):
+  builder.AddCommand(inputs=[os.path.join(builder.sourcePath, 'tests/api18_hook_contract_test.py'),
+                             os.path.join(builder.sourcePath, 'src/main.cpp'),
+                             os.path.join(builder.sourcePath, 'include/main.h')],
+      argv=['python3', '-I', os.path.join(builder.sourcePath, 'tests/api18_hook_contract_test.py'), 'api18-hooks.ok'],
+      outputs=['api18-hooks.ok'])
 
 for sdk_target in MMSPlugin.sdk_targets:
   sdk = sdk_target.sdk

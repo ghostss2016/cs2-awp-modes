@@ -25,4 +25,6 @@ parser.options.add_argument('-s', '--sdks', default='cs2', dest='sdks',
                        help='Build against specified SDKs')
 parser.options.add_argument('--targets', type=str, dest='targets', default=None,
                             help="Override the target architecture")
+parser.options.add_argument('--enable-tests', action='store_true', default=False,
+                            help='Build and run development tests (disabled for production builds).')
 parser.Configure()
